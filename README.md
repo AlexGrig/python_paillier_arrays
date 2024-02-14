@@ -1,2 +1,2 @@
-# python_pallier_arrays
+# python_paillier_arrays
 Pallier encryption for arrays
