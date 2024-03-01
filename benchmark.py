@@ -3,9 +3,13 @@ import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import argparse
+import math
 
 from phe import paillier
-from arrays_phe import ArrayEncryptor, ArrayDecryptor, encrypted_array_size_bytes, catchtime, pretty_print_params
+from phe import encoding
+
+from arrays_phe import ArrayEncryptor, ArrayDecryptor, encrypted_array_size_bytes, increase_exponent_array
+from arrays_phe import catchtime, pretty_print_params
 
 
 Precision = 1e-15
@@ -107,6 +111,32 @@ def speed_and_space_test():
     ax1.legend(loc='upper left',fontsize=11)
     plt.savefig("space_statistics.png")
     # Plot test results <-
+
+def decrease_exponent_example():
+    
+    KEYSIZE = 1024 # default is 3072
+    Precision = 1e-50 # precision for Paillier encoding. For KEYSIZE=3072 Precision=1e-100 and round every 10-th iteration  
+    N_JOBS = 5
+    
+    public_key_1, private_key_1 = paillier.generate_paillier_keypair(n_length=KEYSIZE) # Party 1 generates its keys
+    public_key_2, private_key_2 = paillier.generate_paillier_keypair(n_length=KEYSIZE) # Party 2 generates its keys
+
+    Exponent = math.floor(math.log(Precision, encoding.EncodedNumber.BASE))
+
+    array_encryptor_1 = ArrayEncryptor(public_key_1, n_jobs=N_JOBS, precision=Precision) # Party 2 uses it since 
+    array_decryptor_1 = ArrayDecryptor(private_key_1, n_jobs=N_JOBS) # Party 1 uses it for decryption.
+    
+    client_params_1 = array_encryptor_1.encrypt( np.random.normal(loc=0, scale=np.sqrt(1/100), size=(100,1)) )
+    
+    tmp1 = array_decryptor_1.decrypt(client_params_1, which='encoded')
+    tmp2 = increase_exponent_array(tmp1, Exponent)
+    client_params_2 = array_encryptor_1.encrypt(tmp2, which='encoded')
+    
+    decr_client_params_1 = array_decryptor_1.decrypt(client_params_1)
+    decr_client_params_2 = array_decryptor_1.decrypt(client_params_2)
+    
+    np.testing.assert_allclose(decr_client_params_1, decr_client_params_2)
     
 if __name__ == '__main__':
     speed_and_space_test()
+    #decrease_exponent_example()

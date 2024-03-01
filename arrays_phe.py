@@ -203,6 +203,51 @@ def encrypted_array_size_bytes(arr):
     
     return total_size_in_bytes, size_of_data
 
+def increase_exponent(required_exponent, xx: encoding.EncodedNumber):
+    #import pdb; pdb.set_trace()
+    
+    if xx.exponent < required_exponent:
+        base_power = required_exponent-xx.exponent
+    else:
+        return xx
+    
+    new_encoding = xx.encoding // pow(xx.BASE,base_power)
+    
+    new_exponent = required_exponent
+        
+    if (xx.encoding <= xx.public_key.max_int): # Positive
+        
+        return encoding.EncodedNumber(xx.public_key, new_encoding % xx.public_key.n, new_exponent)
+    elif (xx.encoding >= xx.public_key.n - xx.public_key.max_int):
+        # Negative
+        mantissa = xx.public_key.n - xx.encoding
+        new_mantissa = mantissa // pow(xx.BASE,base_power)
+        mantissa = xx.public_key.n - new_mantissa
+        
+        return encoding.EncodedNumber(xx.public_key, mantissa % xx.public_key.n, new_exponent)
+    else:
+        raise OverflowError('Overflow detected in decoded number')
+
+def increase_exponent_array(arr, required_exponent):
+    """
+    
+    
+    """
+    
+    
+    #import pdb; pdb.set_trace()
+    orig_shape = arr.shape
+    
+    increase_exponent_partial = partial(increase_exponent, required_exponent)
+        # numpy.vectorize(pyfunc, otypes=None, doc=None, excluded=None, cache=False, signature=None)
+    vect_increase_exponent = np.vectorize(increase_exponent_partial, otypes=None, doc=None, excluded=None, 
+                                        cache=False, signature=None)
+    
+    res = vect_increase_exponent(arr)
+    res = res.reshape(orig_shape)
+    
+    return res
+
 class catchtime:
     def __init__(self, print_out=False, info=''):
         self.print_out = print_out
